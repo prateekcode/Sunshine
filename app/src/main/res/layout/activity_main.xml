@@ -23,18 +23,10 @@
         android:layout_width="40dp"
         android:layout_height="40dp"/>
 
-    <ScrollView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerview_forecast"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <TextView
-            android:id="@+id/tv_weather_data"
-            android:padding="16dp"
-            android:textSize="20sp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-    </ScrollView>
+        android:layout_height="match_parent"/>
 
 
 
