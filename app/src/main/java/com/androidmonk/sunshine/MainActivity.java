@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
@@ -12,6 +13,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.androidmonk.sunshine.Adapter.ForecastAdapter;
 import com.androidmonk.sunshine.data.SunshinePreferences;
@@ -22,7 +24,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ForecastAdapter.ForecastAdapterOnClickHandler {
 
     private TextView mErrorTextMsg;
     private ProgressBar mLoadingContent;
@@ -44,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView.setLayoutManager(layoutManager);
         mRecyclerView.setHasFixedSize(true);
 
-        mForecastAdapter = new ForecastAdapter();
+        mForecastAdapter = new ForecastAdapter(this);
         mRecyclerView.setAdapter(mForecastAdapter);
 
         loadWeatherData();
@@ -70,6 +72,12 @@ public class MainActivity extends AppCompatActivity {
         mRecyclerView.setVisibility(View.INVISIBLE);
     }
 
+    @Override
+    public void onClick(String weatherForDay) {
+        Context context = this;
+        Toast.makeText(context, weatherForDay, Toast.LENGTH_SHORT)
+                .show();
+    }
 
 
     public class FetchWeatherTask extends AsyncTask<String, URL, String[]>{
