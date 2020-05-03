@@ -1,6 +1,6 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name">Sunshine</string>
-    
+
     <string name="action_refresh">Refresh</string>
 
     <!-- Error Message -->
@@ -106,6 +106,9 @@
     <string name="condition_962">Hurricane</string>
 
     <string name="condition_unknown">Unknown (<xliff:g id="conditionId">%1$d</xliff:g>)</string>
+    <string name="child_message">Test text</string>
+    <string name="open_map">Open Map</string>
+    <string name="share">Share</string>
 
 
     <!-- - - - - - - - - - - -->

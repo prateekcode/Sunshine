@@ -6,8 +6,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -30,6 +33,8 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
     private ProgressBar mLoadingContent;
     private RecyclerView mRecyclerView;
     private ForecastAdapter mForecastAdapter;
+
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +82,9 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
         Context context = this;
         Toast.makeText(context, weatherForDay, Toast.LENGTH_SHORT)
                 .show();
+        Intent detailIntent = new Intent(getApplicationContext(), DetailActivity.class);
+        detailIntent.putExtra(Intent.EXTRA_TEXT, weatherForDay);
+        startActivity(detailIntent);
     }
 
 
@@ -134,9 +142,31 @@ public class MainActivity extends AppCompatActivity implements ForecastAdapter.F
             return true;
         }
 
+        if (itemThatHasSelected == R.id.open_map){
+            openMap();
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 
+    public void openMap(){
+        String addressString = "1600 Amphitheatre Pakway, CA";
+        Uri.Builder builder = new Uri.Builder();
+        builder.scheme("geo")
+                .path("0,0")
+                .query(addressString);
+        Uri addressUri = builder.build();
+        showMap(addressUri);
+    }
 
+    public void showMap(Uri uri){
+        Intent mapIntent = new Intent(Intent.ACTION_VIEW, uri);
+        if (mapIntent.resolveActivity(getPackageManager())!=null){
+            startActivity(mapIntent);
+        }else {
+            Log.d(TAG, "Couldn't call" );
+        }
+    }
 
 }
