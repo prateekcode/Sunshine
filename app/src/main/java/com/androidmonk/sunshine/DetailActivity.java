@@ -1,5 +1,6 @@
 package com.androidmonk.sunshine;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -52,5 +53,16 @@ public class DetailActivity extends AppCompatActivity {
         MenuItem menuItem = menu.findItem(R.id.action_share);
         menuItem.setIntent(createShareForecastIntent());
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_setting){
+            Intent startSetting = new Intent(this, SettingActivity.class);
+            startActivity(startSetting);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
