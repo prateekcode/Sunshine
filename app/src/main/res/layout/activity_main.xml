@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+
     <TextView
         android:id="@+id/error_text_view"
         android:text="@string/error_message"
@@ -25,6 +26,8 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerview_forecast"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 

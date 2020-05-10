@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical">
 
     <TextView
@@ -9,7 +10,7 @@
         android:padding="16dp"
         android:textSize="22sp"
         style="@style/TextAppearance.AppCompat.Large"
-        android:text="Abcde"
+        tools:text="Saturday, October 1 - Sunny - 78° / 63°"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
     

@@ -1,6 +1,10 @@
 package com.androidmonk.sunshine.utilities;
 
+import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
+
+import com.androidmonk.sunshine.data.SunshinePreferences;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +44,58 @@ public final class NetworkUtils {
     final static String FORMAT_PARAM = "mode";
     final static String UNITS_PARAM = "units";
     final static String DAYS_PARAM = "cnt";
+
+
+
+    public static URL getUrl(Context context){
+        if (SunshinePreferences.isLocationLatLonAvailable(context)){
+            double[] preferenceCoordinates = SunshinePreferences.getLocationCoordinates(context);
+            double latitude = preferenceCoordinates[0];
+            double longitude = preferenceCoordinates[1];
+            return buildUrlWithLatitudeLongitude(latitude, longitude);
+        }else {
+            String locationQuery = SunshinePreferences.getPreferredWeatherLocation(context);
+            return buildUrlWithLocationQuery(locationQuery);
+        }
+    }
+
+    private static URL buildUrlWithLocationQuery(String locationQuery) {
+        Uri weatherQueryUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                .appendQueryParameter(QUERY_PARAM, locationQuery)
+                .appendQueryParameter(FORMAT_PARAM, format)
+                .appendQueryParameter(UNITS_PARAM, units)
+                .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                .build();
+
+        try {
+            URL weatherQueryUrl = new URL(weatherQueryUri.toString());
+            Log.v(TAG, "URL: " + weatherQueryUrl);
+            return weatherQueryUrl;
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static URL buildUrlWithLatitudeLongitude(double latitude, double longitude) {
+        Uri weatherQueryUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
+                .appendQueryParameter(LAT_PARAM, String.valueOf(latitude))
+                .appendQueryParameter(LON_PARAM, String.valueOf(longitude))
+                .appendQueryParameter(FORMAT_PARAM, format)
+                .appendQueryParameter(UNITS_PARAM, units)
+                .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
+                .build();
+
+        try {
+            URL weatherQueryUrl = new URL(weatherQueryUri.toString());
+            Log.v(TAG, "URL: " + weatherQueryUrl);
+            return weatherQueryUrl;
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     /**
      * Builds the URL used to talk to the weather server using a location. This location is based

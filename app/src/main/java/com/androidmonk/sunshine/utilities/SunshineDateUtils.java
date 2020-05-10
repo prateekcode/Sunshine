@@ -7,22 +7,75 @@ import com.androidmonk.sunshine.R;
 
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 public final class SunshineDateUtils {
 
-    public static final long SECOND_IN_MILLIS = 1000;
-    public static final long MINUTE_IN_MILLIS = SECOND_IN_MILLIS * 60;
-    public static final long HOUR_IN_MILLIS = MINUTE_IN_MILLIS * 60;
-    public static final long DAY_IN_MILLIS = HOUR_IN_MILLIS * 24;
+    public static final long DAY_IN_MILLIS = TimeUnit.DAYS.toMillis(1);
 
     /**
      * This method returns the number of days since the epoch (January 01, 1970, 12:00 Midnight UTC)
      * in UTC time from the current date.
      *
-     * @param date A date in milliseconds in local time.
      *
      * @return The number of days in UTC time from the epoch.
      */
+
+    public static long getNormalizedUtcDateForToday(){
+        /*
+         * This number represents the number of milliseconds that have elapsed since January
+         * 1st, 1970 at midnight in the GMT time zone.
+         */
+        long utcNowMillis = System.currentTimeMillis();
+
+        /*
+         * This TimeZone represents the device's current time zone. It provides us with a means
+         * of acquiring the offset for local time from a UTC time stamp.
+         */
+        TimeZone currentTimeZone = TimeZone.getDefault();
+
+        /*
+         * The getOffset method returns the number of milliseconds to add to UTC time to get the
+         * elapsed time since the epoch for our current time zone. We pass the current UTC time
+         * into this method so it can determine changes to account for daylight savings time.
+         */
+        long gmtOffsetMillis = currentTimeZone.getOffset(utcNowMillis);
+
+        /*
+         * UTC time is measured in milliseconds from January 1, 1970 at midnight from the GMT
+         * time zone. Depending on your time zone, the time since January 1, 1970 at midnight (GMT)
+         * will be greater or smaller. This variable represents the number of milliseconds since
+         * January 1, 1970 (GMT) time.
+         */
+        long timeSinceEpochLocalTimeMillis = utcNowMillis + gmtOffsetMillis;
+
+        /* This method simply converts milliseconds to days, disregarding any fractional days */
+        long daysSinceEpochLocal = TimeUnit.MILLISECONDS.toDays(timeSinceEpochLocalTimeMillis);
+
+        /*
+         * Finally, we convert back to milliseconds. This time stamp represents today's date at
+         * midnight in GMT time. We will need to account for local time zone offsets when
+         * extracting this information from the database.
+         */
+        long normalizedUtcMidnightMillis = TimeUnit.DAYS.toMillis(daysSinceEpochLocal);
+
+        return normalizedUtcMidnightMillis;
+
+    }
+    /**
+     * This method returns the number of days since the epoch (January 01, 1970, 12:00 Midnight UTC)
+     * in UTC time from the current date.
+     *
+     * @param utcDate A date in milliseconds in UTC time.
+     *
+     * @return The number of days from the epoch to the date argument.
+     */
+
+    private static long elapsedDaysSinceEpoch(long utcDate) {
+        return TimeUnit.MILLISECONDS.toDays(utcDate);
+    }
+
+
     public static long getDayNumber(long date) {
         TimeZone tz = TimeZone.getDefault();
         long gmtOffset = tz.getOffset(date);
@@ -38,10 +91,50 @@ public final class SunshineDateUtils {
      * @return The UTC date at 12 midnight
      */
     public static long normalizeDate(long date) {
-        // Normalize the start date to the beginning of the (UTC) day in local time
-        long retValNew = date / DAY_IN_MILLIS * DAY_IN_MILLIS;
-        return retValNew;
+        long daysSinceEpoch = elapsedDaysSinceEpoch(date);
+        long millisFromEpochToTodayAtMidnightUtc = daysSinceEpoch * DAY_IN_MILLIS;
+        return millisFromEpochToTodayAtMidnightUtc;
     }
+
+    /**
+     * In order to ensure consistent inserts into WeatherProvider, we check that dates have been
+     * normalized before they are inserted. If they are not normalized, we don't want to accept
+     * them, and leave it up to the caller to throw an IllegalArgumentException.
+     *
+     * @param millisSinceEpoch Milliseconds since January 1, 1970 at midnight
+     *
+     * @return true if the date represents the beginning of a day in Unix time, false otherwise
+     */
+    public static boolean isDateNormalized(long millisSinceEpoch) {
+        boolean isDateNormalized = false;
+        if (millisSinceEpoch % DAY_IN_MILLIS == 0) {
+            isDateNormalized = true;
+        }
+
+        return isDateNormalized;
+    }
+
+    /**
+     * This method will return the local time midnight for the provided normalized UTC date.
+     *
+     * @param normalizedUtcDate UTC time at midnight for a given date. This number comes from the
+     *                          database
+     *
+     * @return The local date corresponding to the given normalized UTC date
+     */
+    private static long getLocalMidnightFromNormalizedUtcDate(long normalizedUtcDate) {
+        /* The timeZone object will provide us the current user's time zone offset */
+        TimeZone timeZone = TimeZone.getDefault();
+        /*
+         * This offset, in milliseconds, when added to a UTC date time, will produce the local
+         * time.
+         */
+        long gmtOffset = timeZone.getOffset(normalizedUtcDate);
+        long localMidnightMillis = normalizedUtcDate - gmtOffset;
+        return localMidnightMillis;
+    }
+
+
 
     /**
      * Since all dates from the database are in UTC, we must convert the given date
@@ -81,27 +174,44 @@ public final class SunshineDateUtils {
      * For all days after that: "Mon, Jun 8" (Mon, 8 Jun in UK, for example)
      *
      * @param context      Context to use for resource localization
-     * @param dateInMillis The date in milliseconds (UTC)
      * @param showFullDate Used to show a fuller-version of the date, which always contains either
      *                     the day of the week, today, or tomorrow, in addition to the date.
      *
      * @return A user-friendly representation of the date such as "Today, June 8", "Tomorrow",
      * or "Friday"
      */
-    public static String getFriendlyDateString(Context context, long dateInMillis, boolean showFullDate) {
+    public static String getFriendlyDateString(Context context, long normalizedUtcMidnight, boolean showFullDate) {
 
-        long localDate = getLocalDateFromUTC(dateInMillis);
-        long dayNumber = getDayNumber(localDate);
-        long currentDayNumber = getDayNumber(System.currentTimeMillis());
+        /*
+         * NOTE: localDate should be localDateMidnightMillis and should be straight from the
+         * database
+         *
+         * Since we normalized the date when we inserted it into the database, we need to take
+         * that normalized date and produce a date (in UTC time) that represents the local time
+         * zone at midnight.
+         */
+        long localDate = getLocalMidnightFromNormalizedUtcDate(normalizedUtcMidnight);
 
-        if (dayNumber == currentDayNumber || showFullDate) {
+        /*
+         * In order to determine which day of the week we are creating a date string for, we need
+         * to compare the number of days that have passed since the epoch (January 1, 1970 at
+         * 00:00 GMT)
+         */
+        long daysFromEpochToProvidedDate = elapsedDaysSinceEpoch(localDate);
+        /*
+         * As a basis for comparison, we use the number of days that have passed from the epoch
+         * until today.
+         */
+        long daysFromEpochToToday = elapsedDaysSinceEpoch(System.currentTimeMillis());
+
+        if (daysFromEpochToProvidedDate == daysFromEpochToToday || showFullDate) {
             /*
              * If the date we're building the String for is today's date, the format
              * is "Today, June 24"
              */
             String dayName = getDayName(context, localDate);
             String readableDate = getReadableDateString(context, localDate);
-            if (dayNumber - currentDayNumber < 2) {
+            if (daysFromEpochToProvidedDate - daysFromEpochToToday < 2) {
                 /*
                  * Since there is no localized format that returns "Today" or "Tomorrow" in the API
                  * levels we have to support, we take the name of the day (from SimpleDateFormat)
@@ -117,7 +227,7 @@ public final class SunshineDateUtils {
             } else {
                 return readableDate;
             }
-        } else if (dayNumber < currentDayNumber + 7) {
+        } else if (daysFromEpochToProvidedDate < daysFromEpochToToday + 7) {
             /* If the input date is less than a week in the future, just return the day name. */
             return getDayName(context, localDate);
         } else {
@@ -161,19 +271,20 @@ public final class SunshineDateUtils {
          * If the date is today, return the localized version of "Today" instead of the actual
          * day name.
          */
-        long dayNumber = getDayNumber(dateInMillis);
-        long currentDayNumber = getDayNumber(System.currentTimeMillis());
-        if (dayNumber == currentDayNumber) {
-            return context.getString(R.string.today);
-        } else if (dayNumber == currentDayNumber + 1) {
-            return context.getString(R.string.tomorrow);
-        } else {
-            /*
-             * Otherwise, if the day is not today, the format is just the day of the week
-             * (e.g "Wednesday")
-             */
-            SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE");
-            return dayFormat.format(dateInMillis);
+        long daysFromEpochToProvidedDate = elapsedDaysSinceEpoch(dateInMillis);
+        long daysFromEpochToToday = elapsedDaysSinceEpoch(System.currentTimeMillis());
+
+        int daysAfterToday = (int) (daysFromEpochToProvidedDate - daysFromEpochToToday);
+        switch (daysAfterToday) {
+            case 0:
+                return context.getString(R.string.today);
+            case 1:
+                return context.getString(R.string.tomorrow);
+
+            default:
+                SimpleDateFormat dayFormat = new SimpleDateFormat("EEEE");
+                return dayFormat.format(dateInMillis);
         }
+
     }
 }
